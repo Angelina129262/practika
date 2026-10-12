@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="description" content="Редакционный кабинет для управления статьями, авторами, публикациями и модерацией.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%228%22%20fill%3D%22%238d3a2f%22%2F%3E%3Cpath%20d%3D%22M12%2011h24v5H18v6h16v5H18v6h18v5H12z%22%20fill%3D%22%23fff8ed%22%2F%3E%3C%2Fsvg%3E">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <script>
+    (function () {
+      var d = document.documentElement, t = null, a = null;
+      try { t = localStorage.getItem('theme'); a = JSON.parse(localStorage.getItem('accent') || 'null'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark' && t !== 'contrast') {
+        t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      d.setAttribute('data-theme', t);
+      if (a && a.on) {
+        d.style.setProperty('--accent-r', a.r); d.style.setProperty('--accent-g', a.g);
+        d.style.setProperty('--accent-b', a.b); d.style.setProperty('--on-accent', a.on);
+      }
+    })();
+  </script>
+  <title>Редакция — кабинет издателя</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Перейти к основному контенту</a>
+  <header class="site-header">
+    <button type="button" id="burger" class="burger" aria-label="Открыть меню" aria-expanded="false" aria-controls="sidebar">
+      <span class="burger__bar"></span><span class="burger__bar"></span><span class="burger__bar"></span>
+    </button>
+    <hgroup>
+      <h1>Редакция</h1>
+      <p>Кабинет издателя · статьи, авторы, выпуск</p>
+    </hgroup>
+    <details class="theme-menu" id="theme-menu">
+      <summary class="btn btn--ghost" aria-label="Оформление: тема и акцентный цвет"><span aria-hidden="true">&#9680;</span><span class="theme-menu__text">Тема</span></summary>
+      <div class="theme-menu__panel">
+        <div class="field">
+          <label class="field__label" for="theme-select">Тема оформления</label>
+          <select id="theme-select" class="select">
+            <option value="auto">Авто (как в системе)</option>
+            <option value="light">Светлая</option>
+            <option value="dark">Тёмная</option>
+            <option value="contrast">Высокий контраст</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="accent">Акцентный цвет</label>
+          <input type="color" id="accent" class="color" value="#2dd4a7">
+          <output id="accent-hex" for="accent"></output>
+        </div>
+        <button type="button" id="accent-reset" class="btn btn--ghost" disabled>Сбросить цвет</button>
+      </div>
+    </details>
+  </header>
+  <div class="overlay" id="overlay" aria-hidden="true"></div>
+
+  <nav id="sidebar" class="sidebar" aria-label="Разделы">
+    <figure class="logo">
+      <img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%228%22%20fill%3D%22%238d3a2f%22%2F%3E%3Cpath%20d%3D%22M12%2011h24v5H18v6h16v5H18v6h18v5H12z%22%20fill%3D%22%23fff8ed%22%2F%3E%3C%2Fsvg%3E" alt="Логотип редакции" width="48" height="48">
+      <figcaption>Редакция</figcaption>
+    </figure>
+    <ul>
+      <li><a href="#overview">Обзор</a></li>
+      <li><a href="#articles">Статьи</a></li>
+      <li><a href="#moderation">История модерации</a></li>
+    </ul>
+  </nav>
+
+  <main id="main" tabindex="-1">
+    <section id="overview" aria-labelledby="h-overview">
+      <h2 id="h-overview">Обзор</h2>
+      <div id="summary"></div>
+    </section>
+
+    <section id="articles" aria-labelledby="h-articles">
+      <div class="section-head">
+        <h2 id="h-articles">Статьи</h2>
+        <button type="button" id="add-article" class="btn"><span aria-hidden="true">+</span> Добавить статью</button>
+      </div>
+      <form id="filters" class="filters" aria-label="Фильтры статей">
+        <div class="field">
+          <label class="field__label" for="q">Поиск</label>
+          <input id="q" class="input" type="search" placeholder="Заголовок, автор, тег, категория" autocomplete="off">
+        </div>
+        <div class="field">
+          <label class="field__label" for="status">Статус</label>
+          <select id="status" class="select">
+            <option value="all">Все</option>
+            <option value="published">Опубликовано</option>
+            <option value="review">На модерации</option>
+            <option value="draft">Черновик</option>
+            <option value="archived">В архиве</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field__label" for="category">Категория</label>
+          <select id="category" class="select">
+            <option value="all">Все</option>
+            <option value="news">Новости</option>
+            <option value="tech">Технологии</option>
+            <option value="guides">Гайды</option>
+            <option value="reviews">Обзоры</option>
+            <option value="interviews">Интервью</option>
+            <option value="company">О компании</option>
+          </select>
+        </div>
+        <fieldset class="field">
+          <legend class="field__label">Приоритет</legend>
+          <input class="check" type="checkbox" id="p-high" name="priority" value="high" checked><label for="p-high">Высокий</label>
+          <input class="check" type="checkbox" id="p-medium" name="priority" value="medium" checked><label for="p-medium">Средний</label>
+          <input class="check" type="checkbox" id="p-low" name="priority" value="low" checked><label for="p-low">Низкий</label>
+        </fieldset>
+        <fieldset class="field">
+          <legend class="field__label">Вид</legend>
+          <input class="radio" type="radio" id="v-cards" name="view" value="cards" checked><label for="v-cards">Карточки</label>
+          <input class="radio" type="radio" id="v-table" name="view" value="table"><label for="v-table">Таблица</label>
+        </fieldset>
+        <button type="reset" id="reset" class="btn btn--ghost" disabled>Сбросить</button>
+        <output id="result-count" for="q status category"></output>
+      </form>
+      <div id="article-view"></div>
+      <nav id="pagination" class="pagination-nav" aria-label="Постраничная навигация по статьям" hidden></nav>
+    </section>
+
+    <section id="moderation" aria-labelledby="h-moderation">
+      <h2 id="h-moderation">История модерации</h2>
+      <div id="tablist" class="tablist" role="tablist" aria-label="Обращения по статусу">
+        <button type="button" role="tab" class="tab" id="tab-all" aria-controls="tabpanel" aria-selected="true" tabindex="0" data-status="all">Все <span class="tab__count">0</span></button>
+        <button type="button" role="tab" class="tab" id="tab-pending" aria-controls="tabpanel" aria-selected="false" tabindex="-1" data-status="pending">Ожидают <span class="tab__count">0</span></button>
+        <button type="button" role="tab" class="tab" id="tab-inProgress" aria-controls="tabpanel" aria-selected="false" tabindex="-1" data-status="inProgress">В работе <span class="tab__count">0</span></button>
+        <button type="button" role="tab" class="tab" id="tab-done" aria-controls="tabpanel" aria-selected="false" tabindex="-1" data-status="done">Решённые <span class="tab__count">0</span></button>
+      </div>
+      <div id="tabpanel" class="tabpanel" role="tabpanel" aria-labelledby="tab-all"></div>
+    </section>
+  </main>
+
+  <aside class="panel" aria-labelledby="h-panel">
+    <h2 id="h-panel">Очередь модерации</h2>
+    <div id="moderation-panel"></div>
+  </aside>
+
+  <footer class="site-footer">
+    <p>Дежурный редактор</p>
+    <address>
+      <a href="mailto:editor@example.com">editor@example.com</a>, Москва, Россия
+    </address>
+  </footer>
+
+  <dialog id="modal" class="modal" aria-labelledby="modal-title">
+    <article class="modal__box">
+      <header class="modal__head">
+        <h2 id="modal-title">Подробности</h2>
+        <button type="button" data-close id="modal-x" class="btn btn--ghost btn--icon" aria-label="Закрыть окно">&times;</button>
+      </header>
+      <div id="modal-body" class="modal__body"></div>
+      <footer class="modal__foot">
+        <button type="button" id="modal-copy" class="btn btn--ghost">Копировать ID</button>
+        <button type="button" data-close id="modal-close" class="btn">Закрыть</button>
+      </footer>
+    </article>
+  </dialog>
+
+  <div id="toasts" class="toasts" popover="manual"></div>
+  <p id="live" class="sr-only" role="status"></p>
+
+  <dialog id="form-modal" class="modal" aria-labelledby="form-title">
+    <form id="article-form" class="modal__box" novalidate>
+      <header class="modal__head">
+        <h2 id="form-title">Добавить статью</h2>
+        <button type="button" data-close class="btn btn--ghost btn--icon" aria-label="Закрыть окно">&times;</button>
+      </header>
+      <div class="modal__body form-grid">
+        <div class="field">
+          <label class="field__label" for="f-title">Заголовок <span class="req" aria-hidden="true">*</span></label>
+          <input id="f-title" name="title" class="input" type="text" required minlength="3" maxlength="80" autocomplete="off" autofocus data-validate aria-invalid="false" aria-describedby="f-title-hint f-title-error">
+          <p id="f-title-hint" class="field__hint">От 3 до 80 символов</p>
+          <p id="f-title-error" class="field__error" aria-live="polite" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-slug">Адрес страницы (slug) <span class="req" aria-hidden="true">*</span></label>
+          <input id="f-slug" name="slug" class="input" type="text" required maxlength="60" autocomplete="off" data-validate aria-invalid="false" aria-describedby="f-slug-hint f-slug-error">
+          <p id="f-slug-hint" class="field__hint">Латиница, цифры и дефис, например: new-release</p>
+          <p id="f-slug-error" class="field__error" aria-live="polite" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-category">Категория <span class="req" aria-hidden="true">*</span></label>
+          <select id="f-category" name="category" class="select" required data-validate aria-invalid="false" aria-describedby="f-category-error">
+            <option value="">Выберите категорию</option>
+            <option value="news">Новости</option>
+            <option value="tech">Технологии</option>
+            <option value="guides">Гайды</option>
+            <option value="reviews">Обзоры</option>
+            <option value="interviews">Интервью</option>
+            <option value="company">О компании</option>
+          </select>
+          <p id="f-category-error" class="field__error" aria-live="polite" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-email">Email автора <span class="req" aria-hidden="true">*</span></label>
+          <input id="f-email" name="email" class="input" type="email" required maxlength="60" autocomplete="email" data-validate aria-invalid="false" aria-describedby="f-email-error">
+          <p id="f-email-error" class="field__error" aria-live="polite" hidden></p>
+        </div>
+        <div class="field">
+          <label class="field__label" for="f-excerpt">Анонс</label>
+          <textarea id="f-excerpt" name="excerpt" class="input" rows="3" data-validate aria-invalid="false" aria-describedby="f-excerpt-count f-excerpt-error"></textarea>
+          <p id="f-excerpt-count" class="field__hint">0 / 160</p>
+          <p id="f-excerpt-error" class="field__error" aria-live="polite" hidden></p>
+        </div>
+      </div>
+      <footer class="modal__foot">
+        <button type="button" data-close class="btn btn--ghost">Отмена</button>
+        <button type="submit" class="btn">Добавить</button>
+      </footer>
+    </form>
+  </dialog>
+</body>
+</html>
